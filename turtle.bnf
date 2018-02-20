@@ -1,4 +1,3 @@
-
 turtleDoc ::= (WS* statement WS*)*
 
 statement ::= directive | triples "."
@@ -23,9 +22,9 @@ predicate ::= iri
 object ::= iri | blank | blankNodePropertyList | literal
 literal ::= RDFLiteral | NumericLiteral | BooleanLiteral
 blank ::= BlankNode | collection
-blankNodePropertyList ::= "[" predicateObjectList "]"
+blankNodePropertyList ::= "[" WS* predicateObjectList WS* "]"
 
-collection ::= "(" object* ")"
+collection ::= "(" WS* (object WS*)* WS* ")"
 NumericLiteral ::= INTEGER | DECIMAL | DOUBLE
 
 RDFLiteral ::= String ( LANGTAG | ( "^^" iri ) )?
