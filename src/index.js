@@ -1,9 +1,6 @@
 "use strict";
 
-const rangy = require('rangy')
-    , parser = require('./parser')
-
-rangy.init();
+const parser = require('./parser')
 
 const turtle = `
 @prefix : <http://example.com/base> .
@@ -14,57 +11,100 @@ const turtle = `
 ] .
 `
 
+const LESS_THAN = '\ufffe'
+    , GREATER_THAN = '\uffff'
+
 function getNodesToHighlight(ast) {
-  const replacements = []
+  const subjMap = new Map()
+
+  const el = document.createElement('div')
+  el.style.whiteSpace = 'pre';
+  el.style.fontSize = '24px';
+
+  el.textContent = ast.text
+    .replace('<', LESS_THAN)
+    .replace('>', GREATER_THAN)
+
+  let pos = 0
+    , remainingText = el.lastChild
+
+  const cleanTextNode = el => {
+    el.nodeValue = el.nodeValue
+      .replace(LESS_THAN, '<')
+      .replace(GREATER_THAN, '>')
+  }
+
+  const splitNodeText = node => {
+    const start = node.start - pos
+        , len = node.end - node.start
+        , nodeText = remainingText.splitText(start)
+
+    remainingText = nodeText.splitText(node.end - node.start)
+
+    cleanTextNode(nodeText.previousSibling);
+    cleanTextNode(nodeText);
+
+    pos = pos + start + len;
+
+    return nodeText;
+  }
+
+  let curSubj
+    , curVerb
 
   function walk(node) {
     switch (node.type) {
-    case 'iri':
-      replacements.push(node);
+    case 'subject':
+      curSubj = splitNodeText(node)
+      subjMap.set(curSubj, new Map())
+      break;
+    case 'verb':
+      curVerb = splitNodeText(node)
+      subjMap.get(curSubj).set(curVerb, [])
+      break;
+    case 'object':
+      subjMap.get(curSubj).get(curVerb).push(splitNodeText(node))
       return;
 
     default:
-      node.children.map(walk);
       break;
     }
+
+    node.children.map(walk);
   }
 
   walk(ast)
 
-  return replacements
-}
+  const range = document.createRange()
 
-const LESS_THAN = '\ufffe'
-    , GREATER_THAN = '\uffff'
+  function surround(text) {
+    const span = document.createElement('span')
+    range.selectNode(text);
+    range.surroundContents(span);
+
+    return span;
+  }
+
+  for (const [subj, verbMap] of subjMap) {
+    const span = surround(subj)
+    span.style.color = 'red';
+    for (const [verb, objs] of verbMap) {
+      const span = surround(verb)
+      span.style.color = 'blue';
+
+      for (const obj of objs) {
+        const span = surround(obj)
+        span.style.color = 'green';
+      }
+    }
+  }
+
+  return { el }
+}
 
 function loadTurtle(turtle) {
   const ast = parser.getAST(turtle)
-      , toHighlight = getNodesToHighlight(ast);
-
-  const el = document.createElement('div')
-
-  el.style.whiteSpace = 'pre';
-  el.innerHTML = turtle
-    .replace(/</g, LESS_THAN)
-    .replace(/>/g, GREATER_THAN)
-
-  toHighlight.reverse().forEach(node => {
-    const range = rangy.createRange()
-        , [text] = el.childNodes
-
-    range.setStart(text, node.start);
-    range.setEnd(text, node.end);
-
-    const a = document.createElement('a');
-    a.href = '#';
-
-    range.surroundContents(a);
-  })
-
-
-  el.innerHTML = el.innerHTML
-    .replace(new RegExp(LESS_THAN, 'g'), '&lt;')
-    .replace(new RegExp(GREATER_THAN, 'g'), '&gt;')
+      , { el }  = getNodesToHighlight(ast);
 
   document.body.appendChild(el);
 }
