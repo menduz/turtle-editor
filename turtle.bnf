@@ -13,7 +13,7 @@ triples ::= subject WS* predicateObjectList | blankNodePropertyList WS* predicat
 
 predicateObjectList ::= verb WS* objectList WS* (';' WS* (verb WS* objectList)? )*
 
-objectList ::= object WS* ( "," WS* object )*
+objectList ::= object WS* ("," WS* object WS*)*
 
 verb ::= predicate | "a"
 subject ::= iri | blank
