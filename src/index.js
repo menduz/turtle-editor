@@ -1,27 +1,72 @@
-const fs = require('fs')
-    , ebnf = require('ebnf')
-    , grammar = fs.readFileSync('./turtle.bnf', 'utf-8')
-    , parser = new ebnf.Grammars.W3C.Parser(grammar)
+"use strict";
 
-// The BNF is correct except for a few things:
-// Both sides of prefixed names (including blank node labels) are, according
-// to the standard, not allowed to contain periods as their final character.
-// Something was up with the `ebnf` library that I couldn't figure out that
-// didn't allow me to write lookahead rules like that. So in this parser, those
-// trailing periods are allowed.
+const rangy = require('rangy')
+    , parser = require('./parser')
+
+rangy.init();
 
 const turtle = `
-@prefix a: <http://example.com/a> .
+@prefix : <http://example.com/base> .
 
-:a :b ( :d 1 ) .
+:d :e [
+  :f :g ;
+  :h :i
+] .
 `
 
-const ast = parser.getAST(turtle)
-print('')(ast)
+function getNodesToHighlight(ast) {
+  const replacements = []
 
-function print(sp) {
-  return node => {
-    console.log(`${sp}${node.type} (${node.text.replace('\n', '\\n')})`)
-    node.children.map(print(sp + '  '))
+  function walk(node) {
+    switch (node.type) {
+    case 'iri':
+      replacements.push(node);
+      return;
+
+    default:
+      node.children.map(walk);
+      break;
+    }
   }
+
+  walk(ast)
+
+  return replacements
 }
+
+const LESS_THAN = '\ufffe'
+    , GREATER_THAN = '\uffff'
+
+function loadTurtle(turtle) {
+  const ast = parser.getAST(turtle)
+      , toHighlight = getNodesToHighlight(ast);
+
+  const el = document.createElement('div')
+
+  el.style.whiteSpace = 'pre';
+  el.innerHTML = turtle
+    .replace(/</g, LESS_THAN)
+    .replace(/>/g, GREATER_THAN)
+
+  toHighlight.reverse().forEach(node => {
+    const range = rangy.createRange()
+        , [text] = el.childNodes
+
+    range.setStart(text, node.start);
+    range.setEnd(text, node.end);
+
+    const a = document.createElement('a');
+    a.href = '#';
+
+    range.surroundContents(a);
+  })
+
+
+  el.innerHTML = el.innerHTML
+    .replace(new RegExp(LESS_THAN, 'g'), '&lt;')
+    .replace(new RegExp(GREATER_THAN, 'g'), '&gt;')
+
+  document.body.appendChild(el);
+}
+
+loadTurtle(turtle);
