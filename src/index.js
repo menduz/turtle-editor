@@ -2,7 +2,7 @@
 
 const parser = require('./parser')
 
-const turtle = `
+const turtle = String.raw`
 @prefix : <http://example.com/base> .
 
 :d :e [

@@ -3,7 +3,7 @@
 const fs = require('fs')
     , ebnf = require('ebnf')
     , grammar = fs.readFileSync(__dirname + '/../turtle.bnf', 'utf-8')
-    , parser = new ebnf.Grammars.W3C.Parser(grammar)
+    , parser = new ebnf.Grammars.W3C.Parser(String.raw({ raw: grammar }))
 
 // The BNF is correct except for a few things:
 // Both sides of prefixed names (including blank node labels) are, according
