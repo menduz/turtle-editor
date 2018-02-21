@@ -16,6 +16,7 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "ebnf": "^1.5.0",
+    "moo": "^0.4.3",
     "rangy": "^1.3.0"
   },
   "browserify": {
