@@ -65,7 +65,8 @@ ECHAR ::= "\\" [tbnrf'"\\]
 
 NIL ::= "(" WS* ")"
 
-WS ::= #x20 | #x9 | #xD | #xA
+WS ::= #x20 | #x9 | #xD | #xA | '#' [^\##xA]*
+
 
 ANON ::= "[" WS* "]"
 
