@@ -4,11 +4,15 @@ const lexer = require('./lexer')
 const TYPE = '_type'
 const TOKENS = '_tokens'
 
-function firstTokenWithType(type) {
+function withType(type) {
   return d => ({
     [TYPE]: type,
-    [TOKENS]: [d[0]]
+    [TOKENS]: [d]
   })
+}
+
+function firstTokenWithType(type) {
+  return d => withType(type)(d[0])
 }
 
 %}
@@ -32,8 +36,8 @@ directive ->
       }) %}
 
 triples ->
-    subject ws predicateObjectList
-      {% d => [].concat(firstTokenWithType('subject')(d), d[2]) %}
+    (subject ws predicateObjectList)
+      {% ([[subj, _, preds]]) => [].concat(subj, preds) %}
 
 predicateObjectList ->
     verb ws objectList ( ";" ws predicateObjectList ):?
@@ -44,20 +48,39 @@ objectList ->
     {% ([obj, _, tail]) => [].concat(obj, tail ? tail[2] : []) %}
 
 subject ->
-    iri {% id %}
-  | %blankNode {% id %}
+    (iri | blank)
+      {% ([[d]]) =>
+        Array.isArray(d)
+          ? d
+          : withType('subject')(d)
+      %}
 
 verb ->
     iri {% firstTokenWithType('predicate') %}
   | "a" {% firstTokenWithType('predicate') %}
-  | %blankNode {% firstTokenWithType('predicate') %}
+  | blank {% ([d]) => Array.isArray(d) ? d : withType('predicate')(d) %}
 
 object ->
     iri {% firstTokenWithType('object') %}
-  | blank {% firstTokenWithType('object') %}
+  | blankNodePropertyList {% id %}
+  | blank {% ([d]) => Array.isArray(d) ? d : withType('object')(d) %}
 
 blank ->
     %blankNode {% id %}
+  | ("(" ws (object ws):* ")")
+      {% ([[open, _, objs, close]]) => [].concat(
+        withType('listOpen')(open),
+        objs.map(([obj]) => Object.assign(obj, { [TYPE]: 'listMember' })),
+        withType('listClose')(close)
+      ) %}
+
+blankNodePropertyList ->
+    ("[" ws predicateObjectList "]")
+      {% ([[open, _, preds, close]]) => [].concat(
+        withType('openBlankNodePropertyList')(open),
+        preds,
+        withType('closeBlankNodePropertyList')(close),
+      ) %}
 
 iriref ->
     %iri {% id %}
