@@ -2,13 +2,12 @@
 const lexer = require('./lexer')
 
 const TYPE = '_type'
-const TOKEN = '_token'
 const TOKENS = '_tokens'
 
-function idWithType(type) {
+function firstTokenWithType(type) {
   return d => ({
     [TYPE]: type,
-    [TOKEN]: d[0]
+    [TOKENS]: [d[0]]
   })
 }
 
@@ -27,12 +26,14 @@ directive ->
     ("@prefix" | "@base") ws %prefixedNameNS ws iri ws "."
       {% ([[directive], _, ns, __, iri]) => ({
         [TYPE]: 'directive',
+        ns: ns.value.slice(0,-1),
+        iri: iri.value.slice(1,-1),
         [TOKENS]: [directive, ns, iri]
       }) %}
 
 triples ->
     subject ws predicateObjectList
-      {% d => [].concat(idWithType('subject')(d), d[2]) %}
+      {% d => [].concat(firstTokenWithType('subject')(d), d[2]) %}
 
 predicateObjectList ->
     verb ws objectList ( ";" ws predicateObjectList ):?
@@ -47,12 +48,16 @@ subject ->
   | %blankNode {% id %}
 
 verb ->
-    iri {% idWithType('predicate') %}
-  | %blankNode {% idWithType('predicate') %}
+    iri {% firstTokenWithType('predicate') %}
+  | "a" {% firstTokenWithType('predicate') %}
+  | %blankNode {% firstTokenWithType('predicate') %}
 
 object ->
-    iri {% idWithType('object') %}
-  | %blankNode {% idWithType('object') %}
+    iri {% firstTokenWithType('object') %}
+  | blank {% firstTokenWithType('object') %}
+
+blank ->
+    %blankNode {% id %}
 
 iriref ->
     %iri {% id %}
