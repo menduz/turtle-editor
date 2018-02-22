@@ -61,6 +61,7 @@ object ->
   | blankNodePropertyList {% id %}
   | ("(" ws ")") {% ([[open, _, close]]) => withType('nil')([open, close]) %}
   | blank {% ([d]) => Array.isArray(d) ? d : withType('object')(d) %}
+  | literal {% firstTokenWithType('object') %}
 
 blank ->
     %blankNode {% id %}
@@ -78,6 +79,16 @@ blankNodePropertyList ->
         preds,
         withType('closeBlankNodePropertyList')(close),
       ) %}
+
+literal ->
+    (string ( langtag | (%langcode | "^^" iri )):?)
+      {% ([[string, rest]]) => [].concat(string, ...(rest || [])) %}
+  | %number {% id %}
+  | ("true" | "false") {% d => d[0][0] %}
+
+string ->
+    (%unescapedString | %singleQuotedString | %tripleQuotedString) {% d => d[0][0] %}
+
 
 iriref ->
     %iri {% id %}

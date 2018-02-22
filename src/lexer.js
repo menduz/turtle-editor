@@ -76,7 +76,7 @@ module.exports = moo.compile({
   unescapedString: /"[^"\\]+"(?=[^"\\])/, // non-empty string without escape sequences
   singleQuotedString: /"[^"\\]*(?:\\.[^"\\]*)*"(?=[^"\\])|^'[^'\\]*(?:\\.[^'\\]*)*'(?=[^'\\])/,
   tripleQuotedString: /""(?:"[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*")""|^''(?:'[^'\\]*(?:(?:\\.|'(?!''))[^'\\]*)*')''/,
-  langcode: /^@(?:[A-Za-z]+(?:-[A-Za-z0-9]+)*)(?=[^A-Za-z0-9\-])/,
+  langcode: /@(?:[A-Za-z]+(?:-[A-Za-z0-9]+)*)(?=[^A-Za-z0-9\-])/,
   prefixedName: new RegExp(`${pnNamespace}${pnLocal}`),
   prefixedNameNS: new RegExp(pnNamespace),
   blankNode: new RegExp(`(?:_:(?:${PN_CHARS_U}|[0-9])(?:(?:${PN_CHARS}|\\.)*${PN_CHARS})?)`),
