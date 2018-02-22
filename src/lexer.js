@@ -79,12 +79,12 @@ module.exports = moo.compile({
   langcode: /^@(?:[A-Za-z]+(?:-[A-Za-z0-9]+)*)(?=[^A-Za-z0-9\-])/,
   prefixedName: new RegExp(`${pnNamespace}${pnLocal}`),
   prefixedNameNS: new RegExp(pnNamespace),
-  blankNode: new RegExp(`(?:_:(?:${PN_CHARS_U}|[0-9])(?:(?:${PN_CHARS}|\\.)*${PN_CHARS})?)|\\([ \t]*\\)`),
+  blankNode: new RegExp(`(?:_:(?:${PN_CHARS_U}|[0-9])(?:(?:${PN_CHARS}|\\.)*${PN_CHARS})?)`),
 
   blankNodeObjectOpen: '[',
   blankNodeObjectClose: ']',
-  collectionOpen: '(',
-  collectionClose: ')',
+  openParen: '(',
+  closeParen: ')',
 
   number: /[\-+]?(?:\d+\.?\d*(?:[eE](?:[\-\+])?\d+)|\d*\.?\d+)(?=[.,;:\s#()\[\]\{\}"'<])/,
   boolean: /(?:true|false)(?=[.,;\s#()\[\]\{\}"'<])/,

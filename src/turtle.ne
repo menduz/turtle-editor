@@ -7,7 +7,7 @@ const TOKENS = '_tokens'
 function withType(type) {
   return d => ({
     [TYPE]: type,
-    [TOKENS]: [d]
+    [TOKENS]: Array.isArray(d) ? d : [d]
   })
 }
 
@@ -63,11 +63,12 @@ verb ->
 object ->
     iri {% firstTokenWithType('object') %}
   | blankNodePropertyList {% id %}
+  | ("(" ws ")") {% ([[open, _, close]]) => withType('nil')([open, close]) %}
   | blank {% ([d]) => Array.isArray(d) ? d : withType('object')(d) %}
 
 blank ->
     %blankNode {% id %}
-  | ("(" ws (object ws):* ")")
+  | ("(" ws (object ws):+ ")")
       {% ([[open, _, objs, close]]) => [].concat(
         withType('listOpen')(open),
         objs.map(([obj]) => Object.assign(obj, { [TYPE]: 'listMember' })),
