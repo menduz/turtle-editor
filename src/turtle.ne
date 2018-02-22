@@ -2,12 +2,13 @@
 const lexer = require('./lexer')
 
 const TYPE = '_type'
-const VALUE = '_value'
+const TOKEN = '_token'
+const TOKENS = '_tokens'
 
 function idWithType(type) {
   return d => ({
     [TYPE]: type,
-    [VALUE]: d[0]
+    [TOKEN]: d[0]
   })
 }
 
@@ -23,10 +24,11 @@ statement ->
   | triples "." {% id %}
 
 directive ->
-    prefixID
-
-prefixID ->
-    "@prefix" %prefixedNameNS iri "."
+    ("@prefix" | "@base") ws %prefixedNameNS ws iri ws "."
+      {% ([[directive], _, ns, __, iri]) => ({
+        [TYPE]: 'directive',
+        [TOKENS]: [directive, ns, iri]
+      }) %}
 
 triples ->
     subject ws predicateObjectList
