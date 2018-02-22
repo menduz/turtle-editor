@@ -1,61 +1,64 @@
 @{%
 const lexer = require('./lexer')
 
-const identity = x => x
+const TYPE = '_type'
+const VALUE = '_value'
 
-function firstNonList(d) {
-  return Array.isArray(d[0])
-    ? firstNonList(d[0])
-    : d[0]
+function idWithType(type) {
+  return d => ({
+    [TYPE]: type,
+    [VALUE]: d[0]
+  })
 }
 
-const TYPE = '_type'
-const CHILDREN = '_children'
 %}
 
 @lexer lexer
 
-main -> statement:* {% firstNonList %}
+main ->
+    ws (statement ws):* {% d => [].concat(...d[1].map(x => x[0])) %}
 
-statement -> (directive | triples ".") {% firstNonList %}
+statement ->
+    directive {% id %}
+  | triples "." {% id %}
 
-directive -> prefixID
+directive ->
+    prefixID
 
-prefixID -> "@prefix" %prefixedNameNS iri "."
+prefixID ->
+    "@prefix" %prefixedNameNS iri "."
 
+triples ->
+    subject ws predicateObjectList
+      {% d => [].concat(idWithType('subject')(d), d[2]) %}
 
-triples -> subject ws predicateObjectList {%
-d => ({
-  [TYPE]: 'triple',
-  [CHILDREN]: [d[0]].concat(d[2]),
-})
-%}
+predicateObjectList ->
+    verb ws objectList ( ";" ws predicateObjectList ):?
+      {% ([verb, _, objs, tail]) => [].concat(verb, objs, tail ? tail[2] : []) %}
 
-subject -> (iri | %blankNode) {%
-d => ({
-  [TYPE]: 'subject',
-  [CHILDREN]: d[0]
-})
-%}
+objectList ->
+  object ws ("," ws objectList):?
+    {% ([obj, _, tail]) => [].concat(obj, tail ? tail[2] : []) %}
 
-predicateObjectList -> verb ws objectList ( ";" ws predicateObjectList ):? {%
-d => [d[0]].concat(d[2])
-%}
+subject ->
+    iri {% id %}
+  | %blankNode {% id %}
 
-verb -> (iri | %blankNode) {%
-([[pred]]) => ({ type: 'predicate', token: pred })
-%}
+verb ->
+    iri {% idWithType('predicate') %}
+  | %blankNode {% idWithType('predicate') %}
 
-objectList -> object ws ("," ws objectList):? {%
-d => d[0]
-%}
+object ->
+    iri {% idWithType('object') %}
+  | %blankNode {% idWithType('object') %}
 
-object -> (iri | %blankNode) {%
-([[obj]]) => ({ type: 'object', token: obj })
-%}
+iriref ->
+    %iri {% id %}
+  | %unescapedIri {% id %}
 
-iriref -> (%iri | %unescapedIri) {% firstNonList %}
+iri ->
+    iriref {% id %}
+  | %prefixedName {% id %}
 
-iri -> (iriref | %prefixedName) {% firstNonList %}
-
-ws -> %ws:* {% () => null %}
+ws ->
+    (%ws | %newline | %comment):* {% () => null %}
