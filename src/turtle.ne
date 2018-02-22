@@ -49,11 +49,7 @@ objectList ->
 
 subject ->
     (iri | blank)
-      {% ([[d]]) =>
-        Array.isArray(d)
-          ? d
-          : withType('subject')(d)
-      %}
+      {% ([[d]]) => Array.isArray(d) ? d : withType('subject')(d) %}
 
 verb ->
     iri {% firstTokenWithType('predicate') %}
