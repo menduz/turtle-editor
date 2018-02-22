@@ -27,12 +27,24 @@ statement ->
   | triples "." {% id %}
 
 directive ->
-    ("@prefix" | "@base") ws %prefixedNameNS ws iri ws "."
-      {% ([[directive], _, ns, __, iri]) => ({
+    prefix {% id %}
+  | base {% id %}
+
+prefix ->
+    "@prefix" ws %prefixedNameNS ws iri ws "."
+      {% ([directive, _, ns, __, iri]) => ({
         [TYPE]: 'directive',
         ns: ns.value.slice(0,-1),
         iri: iri.value.slice(1,-1),
         [TOKENS]: [directive, ns, iri]
+      }) %}
+
+base ->
+    "@base" ws iri ws "."
+      {% ([directive, _, iri]) => ({
+        [TYPE]: 'directive',
+        iri: iri.value.slice(1,-1),
+        [TOKENS]: [directive, iri]
       }) %}
 
 triples ->
@@ -81,7 +93,7 @@ blankNodePropertyList ->
       ) %}
 
 literal ->
-    (string ( langtag | (%langcode | "^^" iri )):?)
+    (string (%langcode | "^^" iri ):?)
       {% ([[string, rest]]) => [].concat(string, ...(rest || [])) %}
   | %number {% id %}
   | ("true" | "false") {% d => d[0][0] %}

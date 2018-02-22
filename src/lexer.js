@@ -71,6 +71,8 @@ const pnLocal = `(?:${PN_CHARS_U}|:|[0-9]|${PLX})(?:(?:${PN_CHARS}|\\.|:|${PLX})
 const pnNamespace = `(?:${pnPrefix})?:`
 
 module.exports = moo.compile({
+  base: /@base/,
+  prefix: /@prefix/,
   iri: /<(?:(?:[^ <>{}\\]|\\[uU])+)>/, // IRI with escape sequences; needs sanity check after unescaping
   unescapedIri: /<(?:[^\x00-\x20<>\\"\{\}\|\^\`]*)>[ \t]*/, // IRI without escape sequences; no unescaping
   unescapedString: /"[^"\\]+"(?=[^"\\])/, // non-empty string without escape sequences
@@ -96,6 +98,4 @@ module.exports = moo.compile({
   comma: ',',
   semicolon: ';',
   datatype: '^^',
-  base: /@base/,
-  prefix: /@prefix/,
 })
