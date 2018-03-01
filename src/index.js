@@ -22,55 +22,91 @@ function createEditor(turtle) {
   })
 
   el.textContent = turtle
-    .replace('<', LESS_THAN)
-    .replace('>', GREATER_THAN)
 
   const p = parser()
 
   p.feed(turtle)
 
-  const tokens = p.results[0]
+  const statements = []
 
-  const textEl = el.childNodes[0]
+  let curStatement = null
 
-  for (const { _type, _tokens } of tokens.reverse()) {
-    switch (_type) {
+  let pos = 0
+    , remainingText = el.lastChild
+
+  const splitNodeText = ({ _type, _tokens }) => {
+    const firstTok = _tokens[0]
+        , lastTok = _tokens[_tokens.length - 1]
+        , start = firstTok.offset - pos
+        , end = (lastTok.offset - pos) + lastTok.text.length
+        , len = end - start
+        , nodeText = remainingText.splitText(start)
+
+    remainingText = nodeText.splitText(len)
+
+    pos = pos + start + len;
+
+    return { _type, _tokens, textNode: nodeText };
+  }
+
+  for (const val of p.results[0]) {
+    switch (val._type) {
     case 'subject':
-      surround(textEl, 's', _tokens);
+      if (!curStatement) {
+        curStatement = []
+        statements.push(curStatement)
+      }
+      curStatement.push(splitNodeText(val));
       break;
     case 'predicate':
-      surround(textEl, 'p', _tokens);
+      curStatement.push(splitNodeText(val));
       break;
     case 'object':
-      surround(textEl, 'o', _tokens);
+      curStatement.push(splitNodeText(val));
       break;
-
+    case 'period':
+      curStatement.push(splitNodeText(val));
+      curStatement = null;
+      break;
     default:
       break;
     }
   }
 
-  el.innerHTML = el.innerHTML
-    .replace(LESS_THAN, '&lt;')
-    .replace(GREATER_THAN, '&gt;')
-
-  return el;
+  return { el, statements };
 }
+
+const { el, statements } = createEditor(escapeBackslashes(turtle));
+
+document.body.appendChild(el);
 
 const range = document.createRange()
 
-function surround(el, type, [t]) {
-  const start = t.offset
-      , end = t.offset + t.text.length
+function w(statements) {
+  const s = statements.shift()
+  if (!s) {
+    return
+  }
 
-  range.setStart(el, start);
-  range.setEnd(el, end);
+  s.filter(s => s.textNode).forEach(s => {
+    const span = document.createElement('span')
+    range.selectNode(s.textNode);
+    range.surroundContents(span);
 
-  const span = document.createElement('span')
-  span.classList.add(type)
-  range.surroundContents(span);
+    span.classList.add(s._type);
+    span.style.backgroundColor = '#ccc'
 
-  return range;
+    s.el = span;
+  })
+
+  /*
+  range.selectNode(s[s.length - 1].el);
+  range.setStart(s[0].el, 0);
+  */
+
+  setTimeout(() => {
+    w(statements);
+  }, 0)
 }
 
-document.body.appendChild(createEditor(escapeBackslashes(turtle)));
+w(statements);
