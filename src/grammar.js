@@ -27,9 +27,10 @@ var grammar = {
     {"name": "main$ebnf$1", "symbols": ["main$ebnf$1", "main$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "main", "symbols": ["ws", "main$ebnf$1"], "postprocess": d => [].concat(...d[1].map(x => x[0]))},
     {"name": "statement", "symbols": ["directive"], "postprocess": id},
-    {"name": "statement", "symbols": ["triples", {"literal":"."}], "postprocess": id},
+    {"name": "statement", "symbols": ["triples", "period"], "postprocess": x => [...x[0], x[1]]},
     {"name": "directive", "symbols": ["prefix"], "postprocess": id},
     {"name": "directive", "symbols": ["base"], "postprocess": id},
+    {"name": "period", "symbols": [{"literal":"."}], "postprocess": firstTokenWithType("period")},
     {"name": "prefix", "symbols": [{"literal":"@prefix"}, "ws", (lexer.has("prefixedNameNS") ? {type: "prefixedNameNS"} : prefixedNameNS), "ws", "iri", "ws", {"literal":"."}], "postprocess":  ([directive, _, ns, __, iri]) => ({
           [TYPE]: 'directive',
           ns: ns.value.slice(0,-1),

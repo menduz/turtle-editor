@@ -23,12 +23,14 @@ main ->
     ws (statement ws):* {% d => [].concat(...d[1].map(x => x[0])) %}
 
 statement ->
-    directive {% id %}
-  | triples "." {% id %}
+    directive {% id %} | triples period {% x => [...x[0], x[1]] %}
 
 directive ->
     prefix {% id %}
   | base {% id %}
+
+period ->
+    "." {% firstTokenWithType("period") %}
 
 prefix ->
     "@prefix" ws %prefixedNameNS ws iri ws "."
