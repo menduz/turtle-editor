@@ -14,8 +14,12 @@ const LESS_THAN = '\ufffe'
 
 function createEditor(turtle) {
   const el = document.createElement('div')
-  el.style.whiteSpace = 'pre';
-  el.style.fontSize = '24px';
+
+  Object.assign(el.style, {
+    whiteSpace: 'pre-wrap',
+    fontSize: '16px',
+    fontFamily: 'monospace',
+  })
 
   el.textContent = turtle
     .replace('<', LESS_THAN)
