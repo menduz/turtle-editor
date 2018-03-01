@@ -12,99 +12,61 @@ const turtle = Buffer.from(`
 const LESS_THAN = '\ufffe'
     , GREATER_THAN = '\uffff'
 
-function getNodesToHighlight(ast) {
-  const subjMap = new Map()
-
+function createEditor(turtle) {
   const el = document.createElement('div')
   el.style.whiteSpace = 'pre';
   el.style.fontSize = '24px';
 
-  el.textContent = ast.text
+  el.textContent = turtle
     .replace('<', LESS_THAN)
     .replace('>', GREATER_THAN)
 
-  let pos = 0
-    , remainingText = el.lastChild
+  const p = parser()
 
-  const cleanTextNode = el => {
-    el.nodeValue = el.nodeValue
-      .replace(LESS_THAN, '<')
-      .replace(GREATER_THAN, '>')
-  }
+  p.feed(turtle)
 
-  const splitNodeText = node => {
-    const start = node.start - pos
-        , len = node.end - node.start
-        , nodeText = remainingText.splitText(start)
+  const tokens = p.results[0]
 
-    remainingText = nodeText.splitText(node.end - node.start)
+  const textEl = el.childNodes[0]
 
-    cleanTextNode(nodeText.previousSibling);
-    cleanTextNode(nodeText);
-
-    pos = pos + start + len;
-
-    return nodeText;
-  }
-
-  let curSubj
-    , curVerb
-
-  function walk(node) {
-    switch (node.type) {
+  for (const { _type, _tokens } of tokens.reverse()) {
+    switch (_type) {
     case 'subject':
-      curSubj = splitNodeText(node)
-      subjMap.set(curSubj, new Map())
+      surround(textEl, 's', _tokens);
       break;
-    case 'verb':
-      curVerb = splitNodeText(node)
-      subjMap.get(curSubj).set(curVerb, [])
+    case 'predicate':
+      surround(textEl, 'p', _tokens);
       break;
     case 'object':
-      subjMap.get(curSubj).get(curVerb).push(splitNodeText(node))
-      return;
+      surround(textEl, 'o', _tokens);
+      break;
 
     default:
       break;
     }
-
-    node.children.map(walk);
   }
 
-  walk(ast)
+  el.innerHTML = el.innerHTML
+    .replace(LESS_THAN, '&lt;')
+    .replace(GREATER_THAN, '&gt;')
 
-  const range = document.createRange()
-
-  function surround(text) {
-    const span = document.createElement('span')
-    range.selectNode(text);
-    range.surroundContents(span);
-
-    return span;
-  }
-
-  for (const [subj, verbMap] of subjMap) {
-    const span = surround(subj)
-    span.style.color = 'red';
-    for (const [verb, objs] of verbMap) {
-      const span = surround(verb)
-      span.style.color = 'blue';
-
-      for (const obj of objs) {
-        const span = surround(obj)
-        span.style.color = 'green';
-      }
-    }
-  }
-
-  return { el }
+  return el;
 }
 
-function loadTurtle(turtle) {
-  const ast = parser.getAST(escapeBackslashes(turtle))
-      , { el }  = getNodesToHighlight(ast);
+const range = document.createRange()
 
-  document.body.appendChild(el);
+function surround(el, type, [t]) {
+  const start = t.offset
+      , end = t.offset + t.text.length
+
+  range.setStart(el, start);
+  range.setEnd(el, end);
+
+  const span = document.createElement('span')
+  span.classList.add(type)
+  range.surroundContents(span);
+
+  return range;
 }
 
-loadTurtle(turtle);
+document.body.appendChild(createEditor(escapeBackslashes(turtle)));
