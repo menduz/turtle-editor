@@ -9,32 +9,60 @@ const turtle = Buffer.from(`
   :d :e :f .
 `)
 
-const LESS_THAN = '\ufffe'
-    , GREATER_THAN = '\uffff'
 
 function createEditor(turtle) {
-  const el = document.createElement('div')
+  const p = parser()
+      , range = document.createRange()
+      , el = document.createElement('div')
+      , statements = []
 
-  Object.assign(el.style, {
-    whiteSpace: 'pre-wrap',
-    fontSize: '16px',
-    fontFamily: 'monospace',
-  })
-
+  el.classList.add('turtle-editor')
   el.textContent = turtle
 
-  const p = parser()
+  const extractTextForToken = makeExtractor(el);
 
   p.feed(turtle)
 
-  const statements = []
-
   let curStatement = null
 
+  for (const val of p.results[0]) {
+    switch (val._type) {
+    case 'subject':
+      if (!curStatement) {
+        curStatement = []
+        statements.push(curStatement)
+      }
+      curStatement.push(extractTextForToken(val));
+      break;
+    case 'predicate':
+      curStatement.push(extractTextForToken(val));
+      break;
+    case 'object':
+      curStatement.push(extractTextForToken(val));
+      break;
+    case 'period':
+      curStatement.push(extractTextForToken(val));
+      curStatement = null;
+      break;
+    default:
+      break;
+    }
+  }
+
+  wrap(range, statements);
+
+  return el;
+}
+
+const el = createEditor(escapeBackslashes(turtle));
+
+document.body.appendChild(el);
+
+function makeExtractor(el) {
   let pos = 0
     , remainingText = el.lastChild
 
-  const splitNodeText = ({ _type, _tokens }) => {
+  return function extractTextForToken({ _type, _tokens }) {
     const firstTok = _tokens[0]
         , lastTok = _tokens[_tokens.length - 1]
         , start = firstTok.offset - pos
@@ -48,65 +76,32 @@ function createEditor(turtle) {
 
     return { _type, _tokens, textNode: nodeText };
   }
+}
 
-  for (const val of p.results[0]) {
-    switch (val._type) {
-    case 'subject':
-      if (!curStatement) {
-        curStatement = []
-        statements.push(curStatement)
-      }
-      curStatement.push(splitNodeText(val));
-      break;
-    case 'predicate':
-      curStatement.push(splitNodeText(val));
-      break;
-    case 'object':
-      curStatement.push(splitNodeText(val));
-      break;
-    case 'period':
-      curStatement.push(splitNodeText(val));
-      curStatement = null;
-      break;
-    default:
-      break;
+function wrap(range, statements) {
+  statements.forEach(s => {
+    if (!s) {
+      return
     }
-  }
 
-  return { el, statements };
-}
+    s.filter(s => s.textNode).forEach(s => {
+      const span = document.createElement('span')
+      range.selectNode(s.textNode);
+      range.surroundContents(span);
 
-const { el, statements } = createEditor(escapeBackslashes(turtle));
+      span.classList.add(s._type);
 
-document.body.appendChild(el);
+      s.el = span;
+    })
 
-const range = document.createRange()
+    const div = document.createElement('div')
 
-function w(statements) {
-  const s = statements.shift()
-  if (!s) {
-    return
-  }
+    div.classList.add('statement')
+    div.setAttribute('id', s[0]._tokens[0].text)
 
-  s.filter(s => s.textNode).forEach(s => {
-    const span = document.createElement('span')
-    range.selectNode(s.textNode);
-    range.surroundContents(span);
+    range.setStartBefore(s[0].el);
+    range.setEndAfter(s[s.length - 1].el);
 
-    span.classList.add(s._type);
-    span.style.backgroundColor = '#ccc'
-
-    s.el = span;
+    range.surroundContents(div);
   })
-
-  /*
-  range.selectNode(s[s.length - 1].el);
-  range.setStart(s[0].el, 0);
-  */
-
-  setTimeout(() => {
-    w(statements);
-  }, 0)
 }
-
-w(statements);
