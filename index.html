@@ -4,19 +4,27 @@
     <meta charset="utf-8">
     <title>Turtle editor</title>
     <style type="text/css">
+      body {
+      }
       .turtle-editor {
         font-family: monospace;
         white-space: pre-wrap;
         font-size: 14px;
+        color: #666;
       }
 
       .statement {
         display: inline-block;
+        line-height: 1.47em;
+        margin-bottom: .5em;
       }
 
-      .statement .subject:first-child {
-        color: crimson;
-        font-weight: bold;
+      [class*="String"] {
+        color: black;
+      }
+
+      .postfix {
+        color: darkmagenta;
       }
     </style>
   </head>

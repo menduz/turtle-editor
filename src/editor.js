@@ -74,10 +74,27 @@ function wrap(range, statements) {
 
     s.filter(s => s.textNode).forEach(s => {
       const span = document.createElement('span')
+
       range.selectNode(s.textNode);
       range.surroundContents(span);
 
       span.classList.add(s._type);
+
+      if (s._tokens.length === 1) {
+        span.classList.add(s._tokens[0].type)
+      }
+
+      if (s._tokens.length === 1 && s._tokens[0].type === 'iri') {
+        const href = s._tokens[0].text.slice(1, -1)
+        span.innerHTML = `&lt;<a href="${href}">${href}</a>&gt;`
+      }
+
+      if (s._tokens.length === 1 && s._tokens[0].type === 'prefixedName') {
+        const text = s._tokens[0].text
+            , colon = text.indexOf(':') + 1
+
+        span.innerHTML = `<span class="prefix">${text.slice(0,colon)}</span><span class="postfix">${text.slice(colon)}</span>`
+      }
 
       s.el = span;
     })
